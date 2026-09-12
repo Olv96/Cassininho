@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cassino Online Supabase</title>
-    <!-- Importa o Supabase direto pelo navegador -->
+    <title>Cassino VIP - Multiplayer Real</title>
+    <!-- Importa o Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* Os mesmos estilos de antes! Mantive o design intacto. */
         body { background-color: #1a1a1a; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .layout-wrapper { display: flex; gap: 20px; max-width: 900px; width: 100%; }
         .casino-container { background-color: #2c3e50; padding: 30px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); flex: 2; border: 2px solid #f39c12; position: relative; }
         .multiplayer-panel { background-color: #1e272e; border-radius: 20px; border: 2px solid #3498db; flex: 1; display: flex; flex-direction: column; padding: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); min-width: 250px; }
         .multiplayer-panel h3 { margin-top: 0; color: #3498db; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; }
-        .players-list { text-align: left; margin-bottom: 15px; background: #2c3e50; padding: 10px; border-radius: 10px; max-height: 120px; overflow-y: auto; font-size: 14px; }
+        .players-list { text-align: left; margin-bottom: 15px; background: #2c3e50; padding: 10px; border-radius: 10px; max-height: 150px; overflow-y: auto; font-size: 14px; }
         .player-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #34495e; padding-bottom: 2px; }
-        .player-name { font-weight: bold; color: #ecf0f1; } .player-balance { color: #2ecc71; }
+        .player-name { font-weight: bold; } .player-balance { color: #2ecc71; font-weight: bold; }
         .chat-box { flex: 1; background: #2c3e50; border-radius: 10px; padding: 10px; text-align: left; overflow-y: auto; height: 200px; font-size: 14px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
-        .chat-msg { margin: 0; word-wrap: break-word; } .chat-msg span.nick { font-weight: bold; color: #f1c40f; } .chat-msg span.sys { font-weight: bold; color: #e74c3c; }
+        .chat-msg { margin: 0; word-wrap: break-word; } .chat-msg span.nick { font-weight: bold; color: #3498db; } .chat-msg span.sys { font-weight: bold; color: #e74c3c; }
         .chat-input-area { display: flex; gap: 5px; } .chat-input-area input { flex: 1; padding: 8px; border-radius: 5px; border: none; background: #ecf0f1; color: #2c3e50; } .chat-input-area button { padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         @media (max-width: 768px) { .layout-wrapper { flex-direction: column; } .chat-box { height: 150px; } }
         h1 { color: #f1c40f; margin-top: 0; text-transform: uppercase; letter-spacing: 1px; font-size: 24px; }
@@ -55,7 +54,7 @@
 
             <!-- MENU -->
             <div id="menu" class="screen active">
-                <h2>O que vamos jogar hoje, <span id="displayNome">Jogador</span>?</h2>
+                <h2>O que vamos jogar hoje, <span id="displayNome" style="color: #f1c40f;">Jogador</span>?</h2>
                 <div class="menu-grid">
                     <button class="btn-game" onclick="abrirJogo('roleta')">🎡 Roleta</button>
                     <button class="btn-game" onclick="abrirJogo('blackjack')">🃏 Blackjack (21)</button>
@@ -110,11 +109,11 @@
 
         <!-- ÁREA MULTIPLAYER REAL -->
         <div class="multiplayer-panel">
-            <h3>🌐 Hall da Fama</h3>
+            <h3>🟢 Online Agora</h3>
             <div class="players-list" id="playersList">Carregando jogadores...</div>
             <div class="chat-box" id="chatBox"></div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="Mande uma mensagem..." onkeypress="if(event.key === 'Enter') mandarMensagem()">
+                <input type="text" id="chatInput" placeholder="Mande uma msg ou /pix..." onkeypress="if(event.key === 'Enter') mandarMensagem()">
                 <button onclick="mandarMensagem()">Enviar</button>
             </div>
         </div>
@@ -122,51 +121,81 @@
 
     <script>
         // ==========================================
-        // 1. CONFIGURAÇÃO DO SUPABASE (COLE SUAS CHAVES AQUI)
+        // 1. CONFIGURAÇÃO DO SUPABASE
         // ==========================================
         const supabaseUrl = 'https://srbkcjjeniizoyilwmvo.supabase.co';
         const supabaseKey = 'sb_publishable_VcIb5lglUTb6vI2l5KDy1g_yoITkt4e';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // ==========================================
-        // 2. LÓGICA DE LOGIN E BANCO DE DADOS
-        // ==========================================
         let nomeJogador = "";
         let saldo = 0;
         let jogoEmAndamento = false;
+        let salaVIP;
 
         async function inicializarApp() {
             nomeJogador = prompt("Qual o seu nickname para jogar?") || "Convidado_" + Math.floor(Math.random()*1000);
             document.getElementById('displayNome').innerText = nomeJogador;
             
-            // Tenta achar o jogador no banco
-            const { data, error } = await client.from('jogadores').select('saldo').eq('nome', nomeJogador).single();
-            
+            const { data } = await client.from('jogadores').select('saldo').eq('nome', nomeJogador).single();
             if (data) {
-                saldo = data.saldo; // Jogador existe, pega o saldo antigo
+                saldo = data.saldo; 
             } else {
-                saldo = 1000; // Jogador novo
+                saldo = 1000;
                 await client.from('jogadores').insert([{ nome: nomeJogador, saldo: 1000 }]);
                 await client.from('chat_mensagens').insert([{ nome: '[Sistema]', mensagem: `${nomeJogador} acabou de entrar no cassino!` }]);
             }
             
             document.getElementById('saldo').innerText = saldo;
-            document.getElementById('gameUI').style.display = "flex"; // Mostra a tela
+            document.getElementById('gameUI').style.display = "flex";
             
-            carregarChat();
-            carregarJogadores();
-            escutarEventosTempoReal();
-        }
-
-        async function salvarSaldoNoBanco() {
-            document.getElementById('saldo').innerText = saldo;
-            await client.from('jogadores').update({ saldo: saldo }).eq('nome', nomeJogador);
+            carregarChatHistorico();
+            configurarMultiplayerTempoReal();
         }
 
         // ==========================================
-        // 3. CHAT E MULTIPLAYER EM TEMPO REAL
+        // 2. MULTIPLAYER EM TEMPO REAL (PRESENCE + CHAT)
         // ==========================================
-        async function carregarChat() {
+        function configurarMultiplayerTempoReal() {
+            salaVIP = client.channel('sala_cassino', {
+                config: { presence: { key: nomeJogador } }
+            });
+
+            // Ouve quem está online
+            salaVIP.on('presence', { event: 'sync' }, () => {
+                const state = salaVIP.presenceState();
+                let html = '';
+                
+                for (const [nome, dados] of Object.entries(state)) {
+                    const info = dados[0];
+                    let corNome = info.nome === nomeJogador ? '#f1c40f' : '#ecf0f1';
+                    let tag = info.nome === nomeJogador ? ' (Você)' : '';
+                    
+                    html += `<div class="player-item">
+                                <span class="player-name" style="color: ${corNome}">🟢 ${info.nome}${tag}</span>
+                                <span class="player-balance">R$ ${info.saldo}</span>
+                             </div>`;
+                }
+                document.getElementById('playersList').innerHTML = html;
+            });
+
+            // Ouve mensagens no Chat
+            salaVIP.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_mensagens' }, payload => {
+                const msg = payload.new;
+                const chatBox = document.getElementById('chatBox');
+                let classe = msg.nome === '[Sistema]' ? 'sys' : 'nick';
+                chatBox.innerHTML += `<p class="chat-msg"><span class="${classe}">${msg.nome}:</span> ${msg.mensagem}</p>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            // Conecta à sala
+            salaVIP.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await salaVIP.track({ nome: nomeJogador, saldo: saldo });
+                }
+            });
+        }
+
+        async function carregarChatHistorico() {
             const { data } = await client.from('chat_mensagens').select('*').order('criado_em', { ascending: false }).limit(15);
             if (data) {
                 const chatBox = document.getElementById('chatBox');
@@ -179,47 +208,53 @@
             }
         }
 
-        async function carregarJogadores() {
-            const { data } = await client.from('jogadores').select('nome, saldo').order('saldo', { ascending: false }).limit(10);
-            if (data) {
-                let html = '';
-                data.forEach(p => { html += `<div class="player-item"><span class="player-name">${p.nome}</span><span class="player-balance">R$ ${p.saldo}</span></div>`; });
-                document.getElementById('playersList').innerHTML = html;
-            }
-        }
-
         async function mandarMensagem() {
             let input = document.getElementById('chatInput');
-            if(input.value.trim() !== "") {
-                await client.from('chat_mensagens').insert([{ nome: nomeJogador, mensagem: input.value }]);
-                input.value = "";
-            }
-        }
+            let texto = input.value.trim();
+            if(texto === "") return;
 
-        function escutarEventosTempoReal() {
-            // Escuta novas mensagens no chat
-            client.channel('chat_publico')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_mensagens' }, payload => {
-                    const msg = payload.new;
+            // --- NOVO COMANDO /PIX ATUALIZADO ---
+            if (texto.toLowerCase() === "/pix") {
+                if (saldo < 50) {
+                    saldo += 1000;
+                    await salvarSaldoNoBanco();
+                    // Manda a mensagem engraçada pro chat de todos
+                    await client.from('chat_mensagens').insert([{ 
+                        nome: '[Sistema]', 
+                        mensagem: `💸 O liso do ${nomeJogador} acabou de pegar o bolsa familia pra jogar no tigrinho!` 
+                    }]);
+                } else {
                     const chatBox = document.getElementById('chatBox');
-                    let classe = msg.nome === '[Sistema]' ? 'sys' : 'nick';
-                    chatBox.innerHTML += `<p class="chat-msg"><span class="${classe}">${msg.nome}:</span> ${msg.mensagem}</p>`;
+                    chatBox.innerHTML += `<p class="chat-msg"><span class="sys">[Sistema]:</span> Você tem R$ ${saldo}! Pare de mendigar.</p>`;
                     chatBox.scrollTop = chatBox.scrollHeight;
-                }).subscribe();
+                }
+                input.value = "";
+                return;
+            }
 
-            // Escuta se algum saldo mudou (pra atualizar o rank ao vivo)
-            client.channel('jogadores_rank')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jogadores' }, payload => {
-                    carregarJogadores(); // Recarrega a lista se alguém atualizar saldo
-                }).subscribe();
+            await client.from('chat_mensagens').insert([{ nome: nomeJogador, mensagem: texto }]);
+            input.value = "";
         }
 
-        // Inicia tudo ao carregar a página
-        window.onload = inicializarApp;
-
+        async function salvarSaldoNoBanco() {
+            document.getElementById('saldo').innerText = saldo;
+            await client.from('jogadores').update({ saldo: saldo }).eq('nome', nomeJogador);
+            await salaVIP.track({ nome: nomeJogador, saldo: saldo });
+        }
 
         // ==========================================
-        // 4. LÓGICA DOS JOGOS (Com salvamento)
+        // SAÍDA INSTANTÂNEA (Desconectar ao fechar a aba)
+        // ==========================================
+        window.addEventListener('beforeunload', async () => {
+            if (salaVIP) {
+                await salaVIP.untrack();
+            }
+        });
+
+        window.onload = inicializarApp;
+
+        // ==========================================
+        // 3. LÓGICA DOS JOGOS
         // ==========================================
         function abrirJogo(jogoId) {
             if (jogoEmAndamento) return;
@@ -240,10 +275,6 @@
             if (isNaN(val) || val <= 0) return { erro: "Valor inválido!" };
             if (val > saldo) return { erro: "Saldo insuficiente!" };
             return { valor: val };
-        }
-
-        async function anunciarNoChat(msg) {
-            await client.from('chat_mensagens').insert([{ nome: '[Sistema]', mensagem: msg }]);
         }
 
         // ROLETA
@@ -271,12 +302,12 @@
             rotacaoAtual += (5 * 360) + (360 - ((idxSorteado * anguloPorFatia) + (anguloPorFatia / 2))) - (rotacaoAtual % 360);
             wheelDiv.style.transform = `rotate(${rotacaoAtual}deg)`;
 
-            setTimeout(() => {
+            setTimeout(async () => {
                 let msg = `Caiu ${numSorteado}. `;
                 if (corApostada === corSort) {
                     let premio = aposta.valor * (corApostada === 'green' ? 14 : 2);
                     saldo += premio; msg += `GANHOU R$${premio}!`; divRes.style.color = "#2ecc71";
-                    if(premio >= 500) anunciarNoChat(`🔥 ${nomeJogador} forrou R$${premio} na roleta!`);
+                    if(premio >= 500) await client.from('chat_mensagens').insert([{ nome: '[Sistema]', mensagem: `🔥 ${nomeJogador} forrou R$${premio} na roleta!` }]);
                 } else { msg += `Perdeu R$${aposta.valor}.`; divRes.style.color = "#e74c3c"; }
                 salvarSaldoNoBanco(); divRes.innerText = msg; jogoEmAndamento = false;
             }, 4000);
@@ -336,7 +367,7 @@
             let elD1 = document.getElementById('die1'), elD2 = document.getElementById('die2');
             elD1.classList.add('rolling'); elD2.classList.add('rolling'); divRes.innerText = "Rolando..."; divRes.style.color = "white";
 
-            setTimeout(() => {
+            setTimeout(async () => {
                 elD1.classList.remove('rolling'); elD2.classList.remove('rolling');
                 let v1 = Math.floor(Math.random() * 6) + 1, v2 = Math.floor(Math.random() * 6) + 1;
                 let soma = v1 + v2; elD1.innerText = facesDados[v1-1]; elD2.innerText = facesDados[v2-1];
@@ -346,7 +377,10 @@
                 else if (palpite === 'maior' && soma > 7) { acertou = true; premio = aposta.valor * 2; }
                 else if (palpite === 'exato' && soma === 7) { acertou = true; premio = aposta.valor * 5; }
 
-                if (acertou) { saldo += premio; divRes.innerText = `Soma ${soma}! GANHOU R$${premio}!`; divRes.style.color = "#2ecc71"; }
+                if (acertou) { 
+                    saldo += premio; divRes.innerText = `Soma ${soma}! GANHOU R$${premio}!`; divRes.style.color = "#2ecc71"; 
+                    if(premio >= 500) await client.from('chat_mensagens').insert([{ nome: '[Sistema]', mensagem: `🎲 ${nomeJogador} mitou nos dados e puxou R$${premio}!` }]);
+                }
                 else { divRes.innerText = `Soma ${soma}. Perdeu R$${aposta.valor}.`; divRes.style.color = "#e74c3c"; }
                 salvarSaldoNoBanco(); jogoEmAndamento = false;
             }, 800);
