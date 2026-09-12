@@ -113,7 +113,7 @@
             <div class="players-list" id="playersList">Carregando jogadores...</div>
             <div class="chat-box" id="chatBox"></div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="Mande uma msg ou /pix..." onkeypress="if(event.key === 'Enter') mandarMensagem()">
+                <input type="text" id="chatInput" placeholder="Digite /clean ou /pix..." onkeypress="if(event.key === 'Enter') mandarMensagem()">
                 <button onclick="mandarMensagem()">Enviar</button>
             </div>
         </div>
@@ -121,7 +121,7 @@
 
     <script>
         // ==========================================
-        // 1. CONFIGURAÇÃO DO SUPABASE
+        // 1. CONFIGURAÇÃO DO SUPABASE (Automático)
         // ==========================================
         const supabaseUrl = 'https://srbkcjjeniizoyilwmvo.supabase.co';
         const supabaseKey = 'sb_publishable_VcIb5lglUTb6vI2l5KDy1g_yoITkt4e';
@@ -213,7 +213,16 @@
             let texto = input.value.trim();
             if(texto === "") return;
 
-            // --- NOVO COMANDO /PIX ATUALIZADO ---
+            // --- COMANDO /CLEAN (Limpar Chat Local) ---
+            if (texto.toLowerCase() === "/clean") {
+                const chatBox = document.getElementById('chatBox');
+                chatBox.innerHTML = ''; // Zera o HTML da caixinha
+                chatBox.innerHTML += `<p class="chat-msg"><span class="sys">[Sistema]:</span> Chat limpo localmente. Pronto para fofocar de novo.</p>`;
+                input.value = "";
+                return;
+            }
+
+            // --- COMANDO /PIX ---
             if (texto.toLowerCase() === "/pix") {
                 if (saldo < 50) {
                     saldo += 1000;
